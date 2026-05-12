@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oracle to PostgreSQL Migration Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f0f4f8; color: #1e293b; }
+    header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0d9488 100%);
+      color: #fff; text-align: center; padding: 2rem 1rem 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,.15);
+    }
+    header h1 { font-size: clamp(1.3rem, 3vw, 1.8rem); font-weight: 700; }
+    header p { font-size: 0.9rem; opacity: 0.85; margin-top: 0.3rem; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .card {
+      background: #fff; border-radius: 12px; padding: 1.2rem; text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06); border-top: 3px solid #0d9488;
+    }
+    .card .value { font-size: 2rem; font-weight: 700; color: #0d9488; }
+    .card .label { font-size: 0.78rem; color: #64748b; margin-top: 0.3rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .progress-bar { background: #e2e8f0; border-radius: 8px; height: 18px; margin-bottom: 2rem; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #0d9488, #14b8a6); border-radius: 8px; transition: width 0.6s; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.7rem; font-weight: 600; }
+    section { margin-bottom: 2rem; }
+    section h2 { font-size: 1.15rem; margin-bottom: 0.8rem; color: #1e3a5f; border-bottom: 2px solid #0d9488; padding-bottom: 0.4rem; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,.05); }
+    th { background: #f1f5f9; text-align: left; padding: 0.6rem 0.8rem; font-size: 0.78rem; text-transform: uppercase; color: #475569; letter-spacing: 0.3px; }
+    td { padding: 0.6rem 0.8rem; border-top: 1px solid #f1f5f9; font-size: 0.85rem; }
+    tr:hover td { background: #f8fafc; }
+    .status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; }
+    .status-not_started { background: #f1f5f9; color: #64748b; }
+    .status-in_progress { background: #fef3c7; color: #92400e; }
+    .status-completed { background: #d1fae5; color: #065f46; }
+    .complexity-high { color: #dc2626; font-weight: 600; }
+    .complexity-medium { color: #d97706; font-weight: 600; }
+    .complexity-low { color: #059669; font-weight: 600; }
+    .tag { display: inline-block; background: #e0e7ff; color: #3730a3; padding: 1px 6px; border-radius: 3px; font-size: 0.68rem; margin: 1px; }
+    footer { text-align: center; padding: 1.5rem; color: #94a3b8; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Oracle &rarr; PostgreSQL Migration Dashboard</h1>
+    <p>Automotive Manufacturing — MES / Supply Chain / Warranty Systems</p>
+  </header>
+  <div class="container">
+    <div id="cards" class="cards"></div>
+    <div class="progress-bar"><div id="progress" class="progress-fill" style="width:0%">0%</div></div>
+    <section><h2>PL/SQL Packages &rarr; PL/pgSQL Functions</h2><table id="pkg-table"><thead><tr><th>Package</th><th>Description</th><th>Lines</th><th>Complexity</th><th>PG Target</th><th>Oracle Features</th><th>Status</th></tr></thead><tbody></tbody></table></section>
+    <section><h2>Views</h2><table id="view-table"><thead><tr><th>View</th><th>Oracle Features</th><th>Status</th></tr></thead><tbody></tbody></table></section>
+    <section><h2>Materialized Views</h2><table id="mv-table"><thead><tr><th>Materialized View</th><th>Refresh</th><th>Oracle Features</th><th>Status</th></tr></thead><tbody></tbody></table></section>
+    <section><h2>Oracle &rarr; PostgreSQL Construct Mapping</h2><table id="construct-table"><thead><tr><th>Oracle</th><th>PostgreSQL</th><th>Notes</th></tr></thead><tbody></tbody></table></section>
+    <section><h2>Data Type Mapping</h2><table id="dtype-table"><thead><tr><th>Oracle</th><th>PostgreSQL</th><th>Notes</th></tr></thead><tbody></tbody></table></section>
+  </div>
+  <footer>Oracle to PostgreSQL Migration Demo &mdash; Powered by Devin AI</footer>
+  <script>
+    var INITIAL_STATE = {
+  "migration_name": "Automotive MFG Oracle to PostgreSQL",
+  "status": "not_started",
+  "summary": {
+    "total_packages": 3,
+    "total_views": 5,
+    "total_materialized_views": 4,
+    "total_triggers": 7,
+    "total_scheduler_jobs": 6,
+    "total_types": 6,
+    "total_tables": 8,
+    "total_sequences": 6,
+    "total_indexes": 8,
+    "total_lines_plsql": 680,
+    "migrated": 0,
+    "pct_complete": 0
+  },
+  "packages": [
+    {
+      "id": "PKG_PARTS_INVENTORY",
+      "name": "Parts Inventory Management",
+      "lines": 210,
+      "oracle_features": ["PRAGMA AUTONOMOUS_TRANSACTION", "NVL", "DECODE", "SYSDATE", "%TYPE", "REF CURSOR", "SELECT FROM DUAL"],
+      "pg_target": "fn_parts_inventory_* (set of functions)",
+      "complexity": "high",
+      "status": "not_started"
+    },
+    {
+      "id": "PKG_BOM_PROCESSOR",
+      "name": "BOM Explosion and Costed Rollup",
+      "lines": 160,
+      "oracle_features": ["CONNECT BY PRIOR", "SYS_CONNECT_BY_PATH", "LEVEL", "PIPELINED", "BULK COLLECT", "NOCOPY", "CONNECT_BY_ISCYCLE"],
+      "pg_target": "fn_bom_* (recursive CTEs)",
+      "complexity": "high",
+      "status": "not_started"
+    },
+    {
+      "id": "PKG_WARRANTY_CLAIMS",
+      "name": "Warranty Claims Processing",
+      "lines": 240,
+      "oracle_features": ["MONTHS_BETWEEN", "ADD_MONTHS", "DECODE", "NVL", "ROWNUM", "FOR UPDATE", "RAISE_APPLICATION_ERROR", "SYS_REFCURSOR"],
+      "pg_target": "fn_warranty_* (set of functions)",
+      "complexity": "high",
+      "status": "not_started"
+    }
+  ],
+  "views": [
+    {"id": "V_INVENTORY_POSITION", "oracle_features": ["NVL", "DECODE(SIGN(...))"], "status": "not_started"},
+    {"id": "V_PRODUCTION_STATUS", "oracle_features": ["SYSDATE arithmetic", "DECODE"], "status": "not_started"},
+    {"id": "V_SUPPLIER_SCORECARD", "oracle_features": ["NVL", "DECODE"], "status": "not_started"},
+    {"id": "V_BOM_HIERARCHY", "oracle_features": ["CONNECT BY PRIOR", "SYS_CONNECT_BY_PATH", "LEVEL", "LPAD"], "status": "not_started"},
+    {"id": "V_WARRANTY_ANALYSIS", "oracle_features": ["DECODE", "MONTHS_BETWEEN"], "status": "not_started"}
+  ],
+  "materialized_views": [
+    {"id": "MV_INVENTORY_VALUATION", "refresh": "NIGHTLY", "oracle_features": ["BUILD IMMEDIATE", "ENABLE QUERY REWRITE"], "status": "not_started"},
+    {"id": "MV_SUPPLIER_PERFORMANCE", "refresh": "WEEKLY", "oracle_features": ["DECODE", "TRUNC(SYSDATE,'YYYY')"], "status": "not_started"},
+    {"id": "MV_WARRANTY_COST_ANALYSIS", "refresh": "MONTHLY", "oracle_features": ["DECODE", "ENABLE QUERY REWRITE"], "status": "not_started"},
+    {"id": "MV_PRODUCTION_BACKLOG", "refresh": "DAILY", "oracle_features": ["SYSDATE", "CASE"], "status": "not_started"}
+  ],
+  "construct_mapping": [
+    {"oracle": "SYSDATE", "postgresql": "CURRENT_TIMESTAMP / NOW()", "notes": "Direct replacement"},
+    {"oracle": "NVL(a, b)", "postgresql": "COALESCE(a, b)", "notes": "COALESCE is SQL standard"},
+    {"oracle": "DECODE(a, b, c, d)", "postgresql": "CASE WHEN a = b THEN c ELSE d END", "notes": "CASE is SQL standard"},
+    {"oracle": "ROWNUM <= n", "postgresql": "LIMIT n / FETCH FIRST n ROWS", "notes": "Standard SQL row limiting"},
+    {"oracle": "CONNECT BY PRIOR", "postgresql": "WITH RECURSIVE", "notes": "Recursive common table expression"},
+    {"oracle": "SYS_CONNECT_BY_PATH", "postgresql": "String concatenation in CTE", "notes": "Build path in recursive step"},
+    {"oracle": "MONTHS_BETWEEN", "postgresql": "EXTRACT(EPOCH FROM age(...))/2592000", "notes": "Or use age() function"},
+    {"oracle": "ADD_MONTHS", "postgresql": "date + INTERVAL 'n months'", "notes": "PostgreSQL interval arithmetic"},
+    {"oracle": "PRAGMA AUTONOMOUS_TRANSACTION", "postgresql": "dblink or separate connection", "notes": "No direct equivalent"},
+    {"oracle": "DBMS_SCHEDULER", "postgresql": "pg_cron / pgAgent", "notes": "Extension required"},
+    {"oracle": "CREATE TYPE AS OBJECT", "postgresql": "CREATE TYPE AS (composite)", "notes": "No member functions"},
+    {"oracle": "PIPELINED TABLE FUNCTION", "postgresql": "RETURNS SETOF / RETURNS TABLE", "notes": "Set-returning function"},
+    {"oracle": "RAISE_APPLICATION_ERROR", "postgresql": "RAISE EXCEPTION", "notes": "Different syntax"},
+    {"oracle": "SELECT FROM DUAL", "postgresql": "SELECT (no FROM needed)", "notes": "PostgreSQL allows bare SELECT"},
+    {"oracle": "%TYPE / %ROWTYPE", "postgresql": "table_name.column%TYPE", "notes": "Supported in PL/pgSQL"},
+    {"oracle": "NUMBER(p,s)", "postgresql": "NUMERIC(p,s)", "notes": "Direct equivalent"},
+    {"oracle": "VARCHAR2(n)", "postgresql": "VARCHAR(n)", "notes": "Drop the 2"}
+  ],
+  "data_type_mapping": [
+    {"oracle": "NUMBER(12)", "postgresql": "BIGINT"},
+    {"oracle": "NUMBER(10,2)", "postgresql": "NUMERIC(10,2)"},
+    {"oracle": "VARCHAR2(n)", "postgresql": "VARCHAR(n)"},
+    {"oracle": "DATE", "postgresql": "TIMESTAMP", "notes": "Oracle DATE includes time"},
+    {"oracle": "CLOB", "postgresql": "TEXT"},
+    {"oracle": "BLOB", "postgresql": "BYTEA"},
+    {"oracle": "RAW(n)", "postgresql": "BYTEA"}
+  ]
+};
+
+    (async function() {
+      var data;
+      try {
+        var resp = await fetch('migration_state.json');
+        if (resp.ok) data = await resp.json();
+      } catch (e) { /* file:// or network error */ }
+      if (!data) data = INITIAL_STATE;
+      render(data);
+    })();
+
+    function render(d) {
+      var s = d.summary;
+      var cardData = [
+        {v: s.total_packages, l: 'PL/SQL Packages'},
+        {v: s.total_views, l: 'Views'},
+        {v: s.total_materialized_views, l: 'Materialized Views'},
+        {v: s.total_triggers, l: 'Triggers'},
+        {v: s.total_scheduler_jobs, l: 'Scheduler Jobs'},
+        {v: s.total_types, l: 'Custom Types'},
+        {v: s.total_tables, l: 'Tables'},
+        {v: s.total_lines_plsql, l: 'Lines of PL/SQL'},
+        {v: s.migrated, l: 'Migrated'},
+        {v: s.pct_complete + '%', l: 'Progress'}
+      ];
+      var ch = '';
+      cardData.forEach(function(c) { ch += '<div class="card"><div class="value">' + c.v + '</div><div class="label">' + c.l + '</div></div>'; });
+      document.getElementById('cards').innerHTML = ch;
+      var pf = document.getElementById('progress');
+      pf.style.width = s.pct_complete + '%';
+      pf.textContent = s.pct_complete + '%';
+
+      var pb = '';
+      (d.packages || []).forEach(function(p) {
+        var tags = (p.oracle_features || []).map(function(f) { return '<span class="tag">' + f + '</span>'; }).join('');
+        pb += '<tr><td><strong>' + p.id + '</strong></td><td>' + p.name + '</td><td>' + p.lines + '</td><td class="complexity-' + p.complexity + '">' + p.complexity + '</td><td>' + p.pg_target + '</td><td>' + tags + '</td><td><span class="status status-' + p.status + '">' + p.status.replace(/_/g, ' ') + '</span></td></tr>';
+      });
+      document.querySelector('#pkg-table tbody').innerHTML = pb;
+
+      var vb = '';
+      (d.views || []).forEach(function(v) {
+        var tags = (v.oracle_features || []).map(function(f) { return '<span class="tag">' + f + '</span>'; }).join('');
+        vb += '<tr><td><strong>' + v.id + '</strong></td><td>' + tags + '</td><td><span class="status status-' + v.status + '">' + v.status.replace(/_/g, ' ') + '</span></td></tr>';
+      });
+      document.querySelector('#view-table tbody').innerHTML = vb;
+
+      var mb = '';
+      (d.materialized_views || []).forEach(function(m) {
+        var tags = (m.oracle_features || []).map(function(f) { return '<span class="tag">' + f + '</span>'; }).join('');
+        mb += '<tr><td><strong>' + m.id + '</strong></td><td>' + m.refresh + '</td><td>' + tags + '</td><td><span class="status status-' + m.status + '">' + m.status.replace(/_/g, ' ') + '</span></td></tr>';
+      });
+      document.querySelector('#mv-table tbody').innerHTML = mb;
+
+      var cb = '';
+      (d.construct_mapping || []).forEach(function(c) {
+        cb += '<tr><td><code>' + c.oracle + '</code></td><td><code>' + c.postgresql + '</code></td><td>' + c.notes + '</td></tr>';
+      });
+      document.querySelector('#construct-table tbody').innerHTML = cb;
+
+      var db = '';
+      (d.data_type_mapping || []).forEach(function(t) {
+        db += '<tr><td><code>' + t.oracle + '</code></td><td><code>' + t.postgresql + '</code></td><td>' + (t.notes || '') + '</td></tr>';
+      });
+      document.querySelector('#dtype-table tbody').innerHTML = db;
+    }
+  </script>
+</body>
+</html>

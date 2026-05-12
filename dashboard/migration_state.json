@@ -1,0 +1,88 @@
+{
+  "migration_name": "Automotive MFG Oracle to PostgreSQL",
+  "status": "not_started",
+  "summary": {
+    "total_packages": 3,
+    "total_views": 5,
+    "total_materialized_views": 4,
+    "total_triggers": 7,
+    "total_scheduler_jobs": 6,
+    "total_types": 6,
+    "total_tables": 8,
+    "total_sequences": 6,
+    "total_indexes": 8,
+    "total_lines_plsql": 680,
+    "migrated": 0,
+    "pct_complete": 0
+  },
+  "packages": [
+    {
+      "id": "PKG_PARTS_INVENTORY",
+      "name": "Parts Inventory Management",
+      "lines": 210,
+      "oracle_features": ["PRAGMA AUTONOMOUS_TRANSACTION", "NVL", "DECODE", "SYSDATE", "%TYPE", "REF CURSOR", "SELECT FROM DUAL"],
+      "pg_target": "fn_parts_inventory_* (set of functions)",
+      "complexity": "high",
+      "status": "not_started"
+    },
+    {
+      "id": "PKG_BOM_PROCESSOR",
+      "name": "BOM Explosion and Costed Rollup",
+      "lines": 160,
+      "oracle_features": ["CONNECT BY PRIOR", "SYS_CONNECT_BY_PATH", "LEVEL", "PIPELINED", "BULK COLLECT", "NOCOPY", "CONNECT_BY_ISCYCLE"],
+      "pg_target": "fn_bom_* (recursive CTEs)",
+      "complexity": "high",
+      "status": "not_started"
+    },
+    {
+      "id": "PKG_WARRANTY_CLAIMS",
+      "name": "Warranty Claims Processing",
+      "lines": 240,
+      "oracle_features": ["MONTHS_BETWEEN", "ADD_MONTHS", "DECODE", "NVL", "ROWNUM", "FOR UPDATE", "RAISE_APPLICATION_ERROR", "SYS_REFCURSOR"],
+      "pg_target": "fn_warranty_* (set of functions)",
+      "complexity": "high",
+      "status": "not_started"
+    }
+  ],
+  "views": [
+    {"id": "V_INVENTORY_POSITION", "oracle_features": ["NVL", "DECODE(SIGN(...))"], "status": "not_started"},
+    {"id": "V_PRODUCTION_STATUS", "oracle_features": ["SYSDATE arithmetic", "DECODE"], "status": "not_started"},
+    {"id": "V_SUPPLIER_SCORECARD", "oracle_features": ["NVL", "DECODE"], "status": "not_started"},
+    {"id": "V_BOM_HIERARCHY", "oracle_features": ["CONNECT BY PRIOR", "SYS_CONNECT_BY_PATH", "LEVEL", "LPAD"], "status": "not_started"},
+    {"id": "V_WARRANTY_ANALYSIS", "oracle_features": ["DECODE", "MONTHS_BETWEEN"], "status": "not_started"}
+  ],
+  "materialized_views": [
+    {"id": "MV_INVENTORY_VALUATION", "refresh": "NIGHTLY", "oracle_features": ["BUILD IMMEDIATE", "ENABLE QUERY REWRITE"], "status": "not_started"},
+    {"id": "MV_SUPPLIER_PERFORMANCE", "refresh": "WEEKLY", "oracle_features": ["DECODE", "TRUNC(SYSDATE,'YYYY')"], "status": "not_started"},
+    {"id": "MV_WARRANTY_COST_ANALYSIS", "refresh": "MONTHLY", "oracle_features": ["DECODE", "ENABLE QUERY REWRITE"], "status": "not_started"},
+    {"id": "MV_PRODUCTION_BACKLOG", "refresh": "DAILY", "oracle_features": ["SYSDATE", "CASE"], "status": "not_started"}
+  ],
+  "construct_mapping": [
+    {"oracle": "SYSDATE", "postgresql": "CURRENT_TIMESTAMP / NOW()", "notes": "Direct replacement"},
+    {"oracle": "NVL(a, b)", "postgresql": "COALESCE(a, b)", "notes": "COALESCE is SQL standard"},
+    {"oracle": "DECODE(a, b, c, d)", "postgresql": "CASE WHEN a = b THEN c ELSE d END", "notes": "CASE is SQL standard"},
+    {"oracle": "ROWNUM <= n", "postgresql": "LIMIT n / FETCH FIRST n ROWS", "notes": "Standard SQL row limiting"},
+    {"oracle": "CONNECT BY PRIOR", "postgresql": "WITH RECURSIVE", "notes": "Recursive common table expression"},
+    {"oracle": "SYS_CONNECT_BY_PATH", "postgresql": "String concatenation in CTE", "notes": "Build path in recursive step"},
+    {"oracle": "MONTHS_BETWEEN", "postgresql": "EXTRACT(EPOCH FROM age(...))/2592000", "notes": "Or use age() function"},
+    {"oracle": "ADD_MONTHS", "postgresql": "date + INTERVAL 'n months'", "notes": "PostgreSQL interval arithmetic"},
+    {"oracle": "PRAGMA AUTONOMOUS_TRANSACTION", "postgresql": "dblink or separate connection", "notes": "No direct equivalent"},
+    {"oracle": "DBMS_SCHEDULER", "postgresql": "pg_cron / pgAgent", "notes": "Extension required"},
+    {"oracle": "CREATE TYPE AS OBJECT", "postgresql": "CREATE TYPE AS (composite)", "notes": "No member functions"},
+    {"oracle": "PIPELINED TABLE FUNCTION", "postgresql": "RETURNS SETOF / RETURNS TABLE", "notes": "Set-returning function"},
+    {"oracle": "RAISE_APPLICATION_ERROR", "postgresql": "RAISE EXCEPTION", "notes": "Different syntax"},
+    {"oracle": "SELECT FROM DUAL", "postgresql": "SELECT (no FROM needed)", "notes": "PostgreSQL allows bare SELECT"},
+    {"oracle": "%TYPE / %ROWTYPE", "postgresql": "table_name.column%TYPE", "notes": "Supported in PL/pgSQL"},
+    {"oracle": "NUMBER(p,s)", "postgresql": "NUMERIC(p,s)", "notes": "Direct equivalent"},
+    {"oracle": "VARCHAR2(n)", "postgresql": "VARCHAR(n)", "notes": "Drop the 2"}
+  ],
+  "data_type_mapping": [
+    {"oracle": "NUMBER(12)", "postgresql": "BIGINT"},
+    {"oracle": "NUMBER(10,2)", "postgresql": "NUMERIC(10,2)"},
+    {"oracle": "VARCHAR2(n)", "postgresql": "VARCHAR(n)"},
+    {"oracle": "DATE", "postgresql": "TIMESTAMP", "notes": "Oracle DATE includes time"},
+    {"oracle": "CLOB", "postgresql": "TEXT"},
+    {"oracle": "BLOB", "postgresql": "BYTEA"},
+    {"oracle": "RAW(n)", "postgresql": "BYTEA"}
+  ]
+}
