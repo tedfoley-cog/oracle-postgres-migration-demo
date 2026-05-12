@@ -1,0 +1,73 @@
+name: CI — Oracle to PostgreSQL Migration Demo
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['*']
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Oracle SQL files exist and are non-empty
+        run: |
+          echo "Checking Oracle source files..."
+          for f in oracle_source/schema/mfg_schema.sql \
+                   oracle_source/packages/pkg_parts_inventory.sql \
+                   oracle_source/packages/pkg_bom_processor.sql \
+                   oracle_source/packages/pkg_warranty_claims.sql \
+                   oracle_source/views/mfg_views.sql \
+                   oracle_source/materialized_views/mfg_matviews.sql \
+                   oracle_source/triggers/mfg_triggers.sql \
+                   oracle_source/jobs/mfg_scheduler_jobs.sql \
+                   oracle_source/types/mfg_types.sql \
+                   oracle_source/data/seed_data.sql; do
+            if [ ! -s "$f" ]; then
+              echo "FAIL: $f is missing or empty"
+              exit 1
+            fi
+            echo "  OK: $f ($(wc -l < "$f") lines)"
+          done
+
+      - name: Validate SQL contains expected keywords
+        run: |
+          echo "Checking SQL syntax markers..."
+          grep -q "CREATE TABLE" oracle_source/schema/mfg_schema.sql
+          grep -q "CREATE OR REPLACE PACKAGE" oracle_source/packages/pkg_parts_inventory.sql
+          grep -q "CONNECT BY" oracle_source/packages/pkg_bom_processor.sql
+          grep -q "CREATE OR REPLACE VIEW" oracle_source/views/mfg_views.sql
+          grep -q "CREATE MATERIALIZED VIEW" oracle_source/materialized_views/mfg_matviews.sql
+          grep -q "CREATE OR REPLACE TRIGGER" oracle_source/triggers/mfg_triggers.sql
+          grep -q "DBMS_SCHEDULER" oracle_source/jobs/mfg_scheduler_jobs.sql
+          grep -q "CREATE OR REPLACE TYPE" oracle_source/types/mfg_types.sql
+          echo "All SQL keyword checks passed"
+
+      - name: Validate repo structure
+        run: |
+          echo "Checking directory structure..."
+          for d in oracle_source/schema oracle_source/packages oracle_source/views \
+                   oracle_source/materialized_views oracle_source/triggers oracle_source/jobs \
+                   oracle_source/types oracle_source/data \
+                   postgres_target/schema postgres_target/functions postgres_target/triggers \
+                   postgres_target/views postgres_target/jobs postgres_target/types \
+                   postgres_target/data \
+                   dashboard docs .github/workflows; do
+            if [ ! -d "$d" ]; then
+              echo "FAIL: directory $d does not exist"
+              exit 1
+            fi
+            echo "  OK: $d/"
+          done
+
+      - name: Validate dashboard
+        run: |
+          echo "Checking dashboard files..."
+          python3 -c "import json; json.load(open('dashboard/migration_state.json'))"
+          echo "  OK: migration_state.json is valid JSON"
+          test -s dashboard/index.html
+          echo "  OK: index.html exists"
+          grep -q "INITIAL_STATE" dashboard/index.html
+          echo "  OK: dashboard has embedded state"
