@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oracle to PostgreSQL Migration — Demo Flow</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f5f7fa;
+      color: #1e293b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      background: linear-gradient(135deg, #1e3a5f 0%, #0d9488 100%);
+      color: #fff;
+      text-align: center;
+      padding: 2rem 1rem 1.75rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,.15);
+    }
+    header h1 {
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-weight: 700;
+    }
+    header p {
+      margin-top: 0.4rem;
+      font-size: 0.95rem;
+      opacity: 0.85;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      padding: 2rem 1.5rem;
+    }
+
+    .mermaid {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+    .mermaid svg { max-width: 100%; height: auto; }
+
+    .legend {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1.2rem 1.5rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06);
+      margin-bottom: 1.5rem;
+    }
+    .legend h3 { font-size: 1rem; margin-bottom: 0.6rem; color: #334155; }
+    .legend-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 0.5rem;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;
+    }
+    .legend-swatch {
+      width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0;
+    }
+
+    footer {
+      width: 100%;
+      text-align: center;
+      padding: 1.5rem;
+      color: #94a3b8;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Oracle to PostgreSQL Migration — Demo Flow</h1>
+    <p>Devin analyzes Oracle schema and generates PostgreSQL equivalents end-to-end</p>
+  </header>
+
+  <div class="container">
+    <div class="mermaid">
+%%{init: {'theme': 'default', 'flowchart': {'useMaxWidth': false, 'htmlLabels': false, 'padding': 20, 'nodeSpacing': 30, 'rankSpacing': 40}}}%%
+flowchart TD
+  REPO[Oracle Source Schema]
+  PROMPT[Prompt Devin]
+
+  subgraph ANALYSIS [Analysis Phase]
+    direction TB
+    PARSE[Parse PL/SQL Packages]
+    VIEWS[Map View Dependencies]
+    TRIGGERS[Trace Trigger Chains]
+    MATVIEWS[Analyze Materialized Views]
+    JOBS[Reverse-Engineer Scheduler Jobs]
+    TYPES[Catalog Custom Types]
+    ORAISMS[Identify Oracle-isms]
+  end
+
+  subgraph GENERATE [Generation Phase]
+    direction TB
+    GEN_DDL[Generate PostgreSQL DDL]
+    GEN_FUNC[Generate PL/pgSQL Functions]
+    GEN_TRIG[Generate PostgreSQL Triggers]
+    GEN_VIEW[Generate PostgreSQL Views]
+    GEN_CRON[Generate pg_cron Jobs]
+    GEN_DATA[Generate Data Migration Scripts]
+  end
+
+  DASHBOARD[Produce Migration Dashboard]
+  PR[Open PR with All Artifacts]
+  REVIEW[Presenter Reviews Results]
+
+  REPO --> PROMPT
+  PROMPT --> PARSE
+  PARSE --> VIEWS
+  PARSE --> TRIGGERS
+  PARSE --> MATVIEWS
+  PARSE --> JOBS
+  PARSE --> TYPES
+  VIEWS --> ORAISMS
+  TRIGGERS --> ORAISMS
+  MATVIEWS --> ORAISMS
+  JOBS --> ORAISMS
+  TYPES --> ORAISMS
+  ORAISMS --> GEN_DDL
+  ORAISMS --> GEN_FUNC
+  GEN_DDL --> GEN_TRIG
+  GEN_DDL --> GEN_VIEW
+  GEN_FUNC --> GEN_CRON
+  GEN_FUNC --> GEN_DATA
+  GEN_TRIG --> DASHBOARD
+  GEN_VIEW --> DASHBOARD
+  GEN_CRON --> DASHBOARD
+  GEN_DATA --> DASHBOARD
+  DASHBOARD --> PR
+  PR --> REVIEW
+
+  classDef trigger    fill:#d1fae5,stroke:#059669,stroke-width:2px,color:#064e3b
+  classDef devinNode  fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#312e81
+  classDef analysis   fill:#dbeafe,stroke:#3b82f6,stroke-width:2px,color:#1e3a8a
+  classDef generate   fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#78350f
+  classDef output     fill:#f0fdf4,stroke:#10b981,stroke-width:2px,color:#064e3b
+  classDef reviewNode fill:#f3e8ff,stroke:#a855f7,stroke-width:2px,color:#581c87
+
+  class REPO trigger
+  class PROMPT devinNode
+  class PARSE,VIEWS,TRIGGERS,MATVIEWS,JOBS,TYPES,ORAISMS analysis
+  class GEN_DDL,GEN_FUNC,GEN_TRIG,GEN_VIEW,GEN_CRON,GEN_DATA generate
+  class DASHBOARD output
+  class PR output
+  class REVIEW reviewNode
+    </div>
+
+    <div class="legend">
+      <h3>Legend</h3>
+      <div class="legend-grid">
+        <div class="legend-item"><div class="legend-swatch" style="background:#d1fae5;border:2px solid #059669;"></div> Trigger / Input</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#e0e7ff;border:2px solid #6366f1;"></div> Devin Prompt</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#dbeafe;border:2px solid #3b82f6;"></div> Analysis (Devin)</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#fef3c7;border:2px solid #f59e0b;"></div> Generation (Devin)</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#f0fdf4;border:2px solid #10b981;"></div> Output Artifacts</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#f3e8ff;border:2px solid #a855f7;"></div> Presenter Review</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Oracle to PostgreSQL Migration Demo &mdash; Powered by Devin AI
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: 'loose',
+      flowchart: {
+        htmlLabels: false,
+        curve: 'basis',
+        useMaxWidth: false
+      }
+    });
+  </script>
+</body>
+</html>
