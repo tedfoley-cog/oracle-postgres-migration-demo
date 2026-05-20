@@ -52,8 +52,31 @@ def _draw_simple_row(pdf, cells, widths, fill=False):
     pdf.ln()
 
 
+def _estimate_row_height(pdf, cells, widths, line_h):
+    """Estimate the height a wrapped row will need (in mm)."""
+    max_lines = 1
+    for text, w in zip(cells, widths):
+        usable = w - 2  # cell padding
+        if usable <= 0:
+            usable = w
+        text_w = pdf.get_string_width(text)
+        lines = max(1, int(text_w / usable) + 1)
+        if lines > max_lines:
+            max_lines = lines
+    return max_lines * line_h
+
+
 def _draw_wrapped_row(pdf, cells, widths, line_h=6, fill=False):
-    """Render a row where text may wrap across multiple lines."""
+    """Render a row where text may wrap across multiple lines.
+
+    Inserts a page break before the row if it would not fit on the
+    current page, preventing split-row rendering artefacts.
+    """
+    est_h = _estimate_row_height(pdf, cells, widths, line_h)
+    page_bottom = pdf.h - pdf.b_margin
+    if pdf.get_y() + est_h > page_bottom:
+        pdf.add_page()
+
     x0 = pdf.l_margin
     y0 = pdf.get_y()
     max_y = y0
