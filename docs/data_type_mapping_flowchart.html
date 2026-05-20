@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oracle to PostgreSQL — Data Type &amp; Construct Mapping</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f5f7fa;
+      color: #1e293b;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      background: linear-gradient(135deg, #1e3a5f 0%, #0d9488 100%);
+      color: #fff;
+      text-align: center;
+      padding: 2rem 1rem 1.75rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,.15);
+    }
+    header h1 {
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-weight: 700;
+    }
+    header p {
+      margin-top: 0.4rem;
+      font-size: 0.95rem;
+      opacity: 0.85;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1400px;
+      padding: 2rem 1.5rem;
+    }
+
+    .mermaid-wrapper {
+      overflow-x: auto;
+      margin-bottom: 2rem;
+      background: #fff;
+      border-radius: 10px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06);
+    }
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+    .mermaid svg { max-width: 100%; height: auto; }
+
+    .legend {
+      background: #fff;
+      border-radius: 10px;
+      padding: 1.2rem 1.5rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06);
+      margin-bottom: 1.5rem;
+    }
+    .legend h3 { font-size: 1rem; margin-bottom: 0.6rem; color: #334155; }
+    .legend-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.5rem;
+    }
+    .legend-item {
+      display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;
+    }
+    .legend-swatch {
+      width: 18px; height: 18px; border-radius: 4px; flex-shrink: 0;
+    }
+
+    footer {
+      width: 100%;
+      text-align: center;
+      padding: 1.5rem;
+      color: #94a3b8;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Oracle to PostgreSQL — Data Type &amp; Construct Mapping</h1>
+    <p>Complete mapping of Oracle data types and SQL/PL/SQL constructs to PostgreSQL equivalents with per-artifact feature usage</p>
+  </header>
+
+  <div class="container">
+    <div class="mermaid-wrapper">
+      <div class="mermaid">
+graph LR
+
+  subgraph DT["Data Type Mappings"]
+    dt_o1["NUMBER(12)"] -->|"Direct"| dt_p1["BIGINT"]
+    dt_o2["NUMBER(10,2)"] -->|"Direct"| dt_p2["NUMERIC(10,2)"]
+    dt_o3["VARCHAR2(n)"] -->|"Drop the 2"| dt_p3["VARCHAR(n)"]
+    dt_o4["DATE"] -->|"Includes time"| dt_p4["TIMESTAMP"]
+    dt_o5["CLOB"] -->|"Direct"| dt_p5["TEXT"]
+    dt_o6["BLOB"] -->|"Direct"| dt_p6["BYTEA"]
+    dt_o7["RAW(n)"] -->|"Direct"| dt_p7["BYTEA "]
+  end
+
+  subgraph CM["Construct Mappings"]
+    cm_o1["SYSDATE"] -->|"Direct"| cm_p1["CURRENT_TIMESTAMP / NOW()"]
+    cm_o2["NVL(a, b)"] -->|"SQL standard"| cm_p2["COALESCE(a, b)"]
+    cm_o3["DECODE(a,b,c,d)"] -->|"SQL standard"| cm_p3["CASE WHEN a=b THEN c ELSE d END"]
+    cm_o4["ROWNUM <= n"] -->|"SQL standard"| cm_p4["LIMIT n / FETCH FIRST n ROWS"]
+    cm_o5["CONNECT BY PRIOR"] -->|"Recursive CTE"| cm_p5["WITH RECURSIVE"]
+    cm_o6["SYS_CONNECT_BY_PATH"] -->|"Recursive step"| cm_p6["String concat in CTE"]
+    cm_o7["MONTHS_BETWEEN"] -->|"Or age()"| cm_p7["EXTRACT EPOCH / 2592000"]
+    cm_o8["ADD_MONTHS"] -->|"Interval"| cm_p8["date + INTERVAL n months"]
+    cm_o9["PRAGMA AUTONOMOUS_TRANSACTION"] -->|"No direct equiv."| cm_p9["dblink / separate conn."]
+    cm_o10["DBMS_SCHEDULER"] -->|"Extension"| cm_p10["pg_cron / pgAgent"]
+    cm_o11["CREATE TYPE AS OBJECT"] -->|"No member fn"| cm_p11["CREATE TYPE AS composite"]
+    cm_o12["PIPELINED TABLE FUNCTION"] -->|"Set-returning"| cm_p12["RETURNS SETOF / TABLE"]
+    cm_o13["RAISE_APPLICATION_ERROR"] -->|"Syntax change"| cm_p13["RAISE EXCEPTION"]
+    cm_o14["SELECT FROM DUAL"] -->|"No FROM needed"| cm_p14["SELECT without FROM"]
+    cm_o15["pctTYPE / pctROWTYPE"] -->|"PL/pgSQL"| cm_p15["table_name.column pctTYPE"]
+    cm_o16["NUMBER(p,s)"] -->|"Direct"| cm_p16["NUMERIC(p,s)"]
+    cm_o17["VARCHAR2(n) "] -->|"Drop the 2"| cm_p17["VARCHAR(n) "]
+  end
+
+  subgraph AU["Artifact Usage — Oracle Features per Object"]
+    a_pkg1["PKG_PARTS_INVENTORY"]
+    a_pkg2["PKG_BOM_PROCESSOR"]
+    a_pkg3["PKG_WARRANTY_CLAIMS"]
+    a_v1["V_INVENTORY_POSITION"]
+    a_v2["V_PRODUCTION_STATUS"]
+    a_v3["V_SUPPLIER_SCORECARD"]
+    a_v4["V_BOM_HIERARCHY"]
+    a_v5["V_WARRANTY_ANALYSIS"]
+    a_mv1["MV_INVENTORY_VALUATION"]
+    a_mv2["MV_SUPPLIER_PERFORMANCE"]
+    a_mv3["MV_WARRANTY_COST_ANALYSIS"]
+    a_mv4["MV_PRODUCTION_BACKLOG"]
+
+    f_pragma["PRAGMA AUTONOMOUS_TXN"]
+    f_nvl["NVL"]
+    f_decode["DECODE"]
+    f_sysdate["SYSDATE"]
+    f_type["pctTYPE"]
+    f_refcursor["REF CURSOR"]
+    f_dual["SELECT FROM DUAL"]
+    f_connectby["CONNECT BY PRIOR"]
+    f_syspath["SYS_CONNECT_BY_PATH"]
+    f_level["LEVEL"]
+    f_pipelined["PIPELINED"]
+    f_bulkcollect["BULK COLLECT"]
+    f_nocopy["NOCOPY"]
+    f_iscycle["CONNECT_BY_ISCYCLE"]
+    f_monthsbetween["MONTHS_BETWEEN"]
+    f_addmonths["ADD_MONTHS"]
+    f_rownum["ROWNUM"]
+    f_forupdate["FOR UPDATE"]
+    f_raiseerr["RAISE_APPLICATION_ERROR"]
+    f_sysrefcursor["SYS_REFCURSOR"]
+    f_decodesign["DECODE / SIGN"]
+    f_sysdatearith["SYSDATE arithmetic"]
+    f_lpad["LPAD"]
+    f_buildimm["BUILD IMMEDIATE"]
+    f_queryrewrite["ENABLE QUERY REWRITE"]
+    f_truncsysdate["TRUNC SYSDATE"]
+    f_case["CASE"]
+
+    a_pkg1 --> f_pragma
+    a_pkg1 --> f_nvl
+    a_pkg1 --> f_decode
+    a_pkg1 --> f_sysdate
+    a_pkg1 --> f_type
+    a_pkg1 --> f_refcursor
+    a_pkg1 --> f_dual
+
+    a_pkg2 --> f_connectby
+    a_pkg2 --> f_syspath
+    a_pkg2 --> f_level
+    a_pkg2 --> f_pipelined
+    a_pkg2 --> f_bulkcollect
+    a_pkg2 --> f_nocopy
+    a_pkg2 --> f_iscycle
+
+    a_pkg3 --> f_monthsbetween
+    a_pkg3 --> f_addmonths
+    a_pkg3 --> f_decode
+    a_pkg3 --> f_nvl
+    a_pkg3 --> f_rownum
+    a_pkg3 --> f_forupdate
+    a_pkg3 --> f_raiseerr
+    a_pkg3 --> f_sysrefcursor
+
+    a_v1 --> f_nvl
+    a_v1 --> f_decodesign
+
+    a_v2 --> f_sysdatearith
+    a_v2 --> f_decode
+
+    a_v3 --> f_nvl
+    a_v3 --> f_decode
+
+    a_v4 --> f_connectby
+    a_v4 --> f_syspath
+    a_v4 --> f_level
+    a_v4 --> f_lpad
+
+    a_v5 --> f_decode
+    a_v5 --> f_monthsbetween
+
+    a_mv1 --> f_buildimm
+    a_mv1 --> f_queryrewrite
+
+    a_mv2 --> f_decode
+    a_mv2 --> f_truncsysdate
+
+    a_mv3 --> f_decode
+    a_mv3 --> f_queryrewrite
+
+    a_mv4 --> f_sysdate
+    a_mv4 --> f_case
+  end
+
+  classDef oracle fill:#fef3c7,stroke:#f59e0b,stroke-width:2px,color:#78350f
+  classDef postgres fill:#dbeafe,stroke:#3b82f6,stroke-width:2px,color:#1e3a8a
+  classDef pkg fill:#e0e7ff,stroke:#6366f1,stroke-width:2px,color:#312e81
+  classDef view fill:#d1fae5,stroke:#059669,stroke-width:2px,color:#064e3b
+  classDef mview fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#075985
+  classDef feature fill:#fef9c3,stroke:#ca8a04,stroke-width:2px,color:#713f12
+
+  class dt_o1,dt_o2,dt_o3,dt_o4,dt_o5,dt_o6,dt_o7 oracle
+  class dt_p1,dt_p2,dt_p3,dt_p4,dt_p5,dt_p6,dt_p7 postgres
+  class cm_o1,cm_o2,cm_o3,cm_o4,cm_o5,cm_o6,cm_o7,cm_o8,cm_o9,cm_o10,cm_o11,cm_o12,cm_o13,cm_o14,cm_o15,cm_o16,cm_o17 oracle
+  class cm_p1,cm_p2,cm_p3,cm_p4,cm_p5,cm_p6,cm_p7,cm_p8,cm_p9,cm_p10,cm_p11,cm_p12,cm_p13,cm_p14,cm_p15,cm_p16,cm_p17 postgres
+  class a_pkg1,a_pkg2,a_pkg3 pkg
+  class a_v1,a_v2,a_v3,a_v4,a_v5 view
+  class a_mv1,a_mv2,a_mv3,a_mv4 mview
+  class f_pragma,f_nvl,f_decode,f_sysdate,f_type,f_refcursor,f_dual,f_connectby,f_syspath,f_level,f_pipelined,f_bulkcollect,f_nocopy,f_iscycle,f_monthsbetween,f_addmonths,f_rownum,f_forupdate,f_raiseerr,f_sysrefcursor,f_decodesign,f_sysdatearith,f_lpad,f_buildimm,f_queryrewrite,f_truncsysdate,f_case feature
+      </div>
+    </div>
+
+    <div class="legend">
+      <h3>Legend</h3>
+      <div class="legend-grid">
+        <div class="legend-item"><div class="legend-swatch" style="background:#fef3c7;border:2px solid #f59e0b;"></div> Oracle Type / Construct</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#dbeafe;border:2px solid #3b82f6;"></div> PostgreSQL Equivalent</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#e0e7ff;border:2px solid #6366f1;"></div> Package (PL/SQL)</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#d1fae5;border:2px solid #059669;"></div> View</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#e0f2fe;border:2px solid #0284c7;"></div> Materialized View</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#fef9c3;border:2px solid #ca8a04;"></div> Oracle Feature</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Oracle to PostgreSQL Data Type &amp; Construct Mapping &mdash; Powered by Devin AI
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: 'loose',
+      flowchart: {
+        htmlLabels: false,
+        curve: 'basis',
+        useMaxWidth: false
+      }
+    });
+  </script>
+</body>
+</html>
