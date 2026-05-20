@@ -162,6 +162,36 @@ docs/
 | `:NEW` / `:OLD` (triggers) | `NEW` / `OLD` | No colon prefix in PG |
 | `RAISE_APPLICATION_ERROR` | `RAISE EXCEPTION` | Different syntax |
 
+## Data Type Mapping Artifacts
+
+Two additional artifacts visualize the complete Oracle-to-PostgreSQL data type and construct mapping tables derived from `dashboard/migration_state.json`:
+
+### Interactive Flowchart
+
+[`docs/data_type_mapping_flowchart.html`](docs/data_type_mapping_flowchart.html) — a Mermaid-based interactive diagram with three sections:
+- **Data Type Mappings** — Oracle types (NUMBER, VARCHAR2, DATE, CLOB, BLOB, RAW) mapped to PostgreSQL equivalents
+- **Construct Mappings** — Oracle SQL/PL/SQL constructs (SYSDATE, NVL, DECODE, CONNECT BY, etc.) mapped to idiomatic PostgreSQL
+- **Artifact Usage** — which packages, views, and materialized views use which Oracle-specific features
+
+### PDF Reference
+
+Run the generation script to produce a printable PDF at `docs/data_type_mapping.pdf`:
+
+```bash
+pip install fpdf2
+python scripts/generate_mapping_pdf.py
+```
+
+The PDF contains:
+- A title page
+- Data type mapping table (Oracle Type | PostgreSQL Type | Notes)
+- Construct mapping table (Oracle Construct | PostgreSQL Equivalent | Notes)
+- Artifact feature usage table (Artifact ID | Type | Oracle Features)
+
+The script reads `dashboard/migration_state.json` and can be run from the repo root.
+
+---
+
 ## Cognition case studies
 
 ### COBOL Modernization at Fortune 500 Companies
